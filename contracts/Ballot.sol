@@ -2,17 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "./interfaces/IVoting.sol";
 
-contract BallotNew {
-    using EnumerableSet for EnumerableSet.AddressSet;
-    using Counters for Counters.Counter;
-
-    Counters.Counter private _partyCounter;
-
-    string public uri;
-
+contract Voting {
     struct Voter {
         uint256 weight; // weight is accumulated by delegation
         bool voted; // if true, that person already voted
@@ -22,23 +14,21 @@ contract BallotNew {
 
     // This is a type for a single proposal.
     struct Proposal {
-        uint256 proposalId;
-        string uri;
+        string name; // short name (up to 32 bytes)
         uint256 voteCount; // number of accumulated votes
     }
 
     address public chairperson;
 
     struct Party {
-        uint256 partyId;
-        string uri;
-        // string name;
+        string name;
         Proposal[] proposals;
-        EnumerableSet.AddressSet listVoters;
-        mapping(address => Voter) voterInfo;
+        mapping(address => Voter) voters;
     }
 
-    Party[] private party;
+    Party[] public party;
+
+    uint256 public partyCount;
 
     enum SESSION {
         PRIMARY_ELECTION,
@@ -50,22 +40,22 @@ contract BallotNew {
     Proposal[] public winningSession;
     mapping(address => Voter) votersForWinningSession;
 
-    uint256 public lockContractTime;
+    uint256 public lockContract;
 
     /// Create a new ballot to choose one of `proposalNames`.
-    constructor(address superAdmin, string memory _uri) payable {
-        chairperson = superAdmin;
+    constructor() payable {
+        chairperson = msg.sender;
+        partyCount = 0;
         session = SESSION.PRIMARY_ELECTION;
-        lockContractTime = block.timestamp + (10 days);
-        uri = _uri;
+        lockContract = block.timestamp + (10 days);
     }
 
-    function addParty(
-        string memory _uri,
-        string[] memory proposalUri
+    function addToParty(
+        string memory partyName,
+        string[] memory proposalNames
     ) public payable onlyChairperson {
         require(
-            block.timestamp <= lockContractTime,
+            block.timestamp <= lockContract,
             "Time up, can not add to party"
         );
         require(
@@ -73,14 +63,13 @@ contract BallotNew {
             "Can not add party in COUNTRY_VOTE session"
         );
         Party storage newParty = party.push();
-        newParty.partyId = _partyCounter.current();
-        newParty.uri = _uri;
-        for (uint256 i = 0; i < proposalUri.length; i++) {
+        newParty.name = partyName;
+        for (uint256 i = 0; i < proposalNames.length; i++) {
             newParty.proposals.push(
-                Proposal({proposalId: i, uri: proposalUri[i], voteCount: 0})
+                Proposal({name: proposalNames[i], voteCount: 0})
             );
         }
-        _partyCounter.increment();
+        partyCount++;
     }
 
     // Give `voter` the right to vote on this party.
@@ -95,12 +84,11 @@ contract BallotNew {
                 "Only chairperson can give right to vote."
             );
             require(
-                !party[partyId].voterInfo[voter].voted,
+                !party[partyId].voters[voter].voted,
                 "The voter already voted."
             );
-            require(party[partyId].voterInfo[voter].weight == 0);
-            party[partyId].listVoters.add(voter);
-            party[partyId].voterInfo[voter].weight = 1;
+            require(party[partyId].voters[voter].weight == 0);
+            party[partyId].voters[voter].weight = 1;
         } else {
             require(
                 msg.sender == chairperson,
@@ -111,7 +99,6 @@ contract BallotNew {
                 "The voter already voted."
             );
             require(votersForWinningSession[voter].weight == 0);
-            party[partyId].listVoters.add(voter);
             votersForWinningSession[voter].weight = 1;
         }
     }
@@ -120,20 +107,20 @@ contract BallotNew {
     function delegate(uint256 partyId, address to) external {
         if (session == SESSION.PRIMARY_ELECTION) {
             // assigns reference
-            Voter storage sender = party[partyId].voterInfo[msg.sender];
+            Voter storage sender = party[partyId].voters[msg.sender];
             require(sender.weight != 0, "You have no right to vote");
             require(!sender.voted, "You already voted.");
 
             require(to != msg.sender, "Self-delegation is disallowed.");
 
-            while (party[partyId].voterInfo[to].delegate != address(0)) {
-                to = party[partyId].voterInfo[to].delegate;
+            while (party[partyId].voters[to].delegate != address(0)) {
+                to = party[partyId].voters[to].delegate;
 
                 // We found a loop in the delegation, not allowed.
                 require(to != msg.sender, "Found loop in delegation.");
             }
 
-            Voter storage delegate_ = party[partyId].voterInfo[to];
+            Voter storage delegate_ = party[partyId].voters[to];
 
             // Voters cannot delegate to accounts that cannot vote.
             require(delegate_.weight >= 1);
@@ -189,7 +176,7 @@ contract BallotNew {
         uint256 proposal
     ) external onlyChairperson {
         if (session == SESSION.PRIMARY_ELECTION) {
-            Voter storage sender = party[partyId].voterInfo[voter];
+            Voter storage sender = party[partyId].voters[voter];
             require(sender.weight != 0, "Has no right to vote");
             require(!sender.voted, "Already voted.");
             sender.voted = true;
@@ -232,20 +219,15 @@ contract BallotNew {
             session == SESSION.PRIMARY_ELECTION,
             "Not in primary election progress"
         );
-        require(lockContractTime < block.timestamp, "Voting in progress");
+        require(lockContract < block.timestamp, "Voting in progress");
         for (uint256 i = 0; i < party.length; i++) {
-            uint256 winnerId = party[i]
+            string memory winnerName = party[i]
                 .proposals[winningProposal(i)]
-                .proposalId;
-            string memory winnerUri = party[i]
-                .proposals[winningProposal(i)]
-                .uri;
-            winningSession.push(
-                Proposal({proposalId: winnerId, uri: winnerUri, voteCount: 0})
-            );
+                .name;
+            winningSession.push(Proposal({name: winnerName, voteCount: 0}));
         }
         session = SESSION.GENERAL_ELECTION;
-        // lockContractTime = block.timestamp + (5 days);
+        // lockContract = block.timestamp + (5 days);
     }
 
     function winningProposalGeneral()
@@ -262,44 +244,26 @@ contract BallotNew {
         }
     }
 
-    function winnerGeneral() external view returns (uint256 winnerId_) {
+    function winnerGeneral() external view returns (string memory winnerName_) {
         require(
             session == SESSION.GENERAL_ELECTION,
             "Not in general election progress"
         );
-        require(lockContractTime < block.timestamp, "Voting in progress");
-        winnerId_ = winningSession[winningProposalGeneral()].proposalId;
+        require(lockContract < block.timestamp, "Voting in progress");
+        winnerName_ = winningSession[winningProposalGeneral()].name;
     }
 
-    function getPartyById(uint256 partyId) public view returns (string memory) {
-        return party[partyId].uri;
-    }
-
-    function getAllParty() public view returns (string[] memory) {
-        string[] memory listParty = new string[](_partyCounter.current());
-        for (uint i = 0; i < _partyCounter.current(); i++) {
-            listParty[i] = party[i].uri;
-        }
-        return listParty;
-    }
-
-    function getAllVoters(
-        uint256 partyId
-    ) public view returns (address[] memory) {
-        return party[partyId].listVoters.values();
-    }
-
-    function getVoterInfo(
-        uint256 partyId,
-        address voter
-    ) public view returns (Voter memory) {
-        return party[partyId].voterInfo[voter];
-    }
-
-    function getProposalsInfo(
+    function getProposal(
         uint256 partyId
     ) public view returns (Proposal[] memory) {
         return party[partyId].proposals;
+    }
+
+    function getVoters(
+        uint256 partyId,
+        address voter
+    ) public view returns (Voter memory) {
+        return party[partyId].voters[voter];
     }
 
     modifier onlyChairperson() {

@@ -6,6 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "ethereum",
+    "react.js"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -13,6 +17,14 @@
     "hardhat": "^2.11.2"
   },
   "dependencies": {
+    "@eth-optimism/contracts": "^0.5.40",
+    "@eth-optimism/sdk": "^2.0.2",
+    "@nomiclabs/hardhat-ethers": "^2.2.1",
+    "@nomiclabs/hardhat-etherscan": "^3.1.2",
+    "@openzeppelin/contracts": "^4.8.0",
+    "ethers": "^5.7.2",
+    "keccak256": "^1.0.6",
+    "merkletreejs": "^0.3.8",
     "web3": "^1.8.0"
   }
 }

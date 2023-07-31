@@ -1,13 +1,29 @@
-# Sample Hardhat Project
+# Simple NFT Game project
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+Blockchain e-voting system, smart contract repo
 
-Try running some of the following tasks:
+# Settings
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
+Create a json file with your key like this format (same level with contracts folder):
+
+{
+"account": {
+"publicKey": "",
+"privateKey": ""
+},
+"etherscan_apikey": ""
+}
+
+# Running
+
+Try running some of the following tasks to deploy smart contract:
+npm i
+
+```localhost environment
 npx hardhat node
-npx hardhat run scripts/deploy.js
+npx hardhat run scripts/deployDeployBallot.js --network localhost
+```
+
+```polygon
+npx hardhat run scripts/deployDeployBallot.js --network polygonMumbai
 ```

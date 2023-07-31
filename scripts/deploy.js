@@ -2,28 +2,28 @@ const hre = require("hardhat");
 const fs = require("fs");
 
 async function main() {
-    const Voting = await hre.ethers.getContractFactory("Ballot");
-    const voting = await Voting.deploy();
+  const Voting = await hre.ethers.getContractFactory("Ballot");
+  const voting = await Voting.deploy();
 
-    await voting.deployed();
+  await voting.deployed();
 
-    console.log(`Voting contract deployed to ${voting.address}`);
+  console.log(`Voting contract deployed to ${voting.address}`);
 
-    let proposals = ["B", "C", "D"];
+  let proposals = ["B", "C", "D"];
 
-    await voting.addToParty("A", proposals);
-    await voting.addToParty("AA", proposals);
+  await voting.addToParty("A", proposals);
+  await voting.addToParty("AA", proposals);
 
-    fs.writeFileSync(
-        "./config.js",
-        `const votingContractAddress = "${voting.address}"
+  fs.writeFileSync(
+    "./config.js",
+    `const votingContractAddress = "${voting.address}"
       module.exports = {votingContractAddress}`
-    );
+  );
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
+  console.error(error);
+  process.exitCode = 1;
 });

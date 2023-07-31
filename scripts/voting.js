@@ -1,57 +1,58 @@
 var { votingContractAddress } = require("../config");
-var VotingContract = require("../artifacts/contracts/Voting.sol/Ballot.json");
+var VotingContract = require("../artifacts/contracts/Ballot.sol/Ballot.json");
 var Web3 = require("web3");
-const { ethers } = require("hardhat");
+var { ethers } = require("hardhat");
+var Account = require("../infor.json");
+var key = require("../key.json");
 
-var web3 = new Web3("http://127.0.0.1:8545/");
-let provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545/");
+// var web3 = new Web3(
+//   new Web3.providers.HttpProvider(
+//     "https://polygon-mumbai.g.alchemy.com/v2/EAAlM0-rm4pHavxVcH0ZV9Sm0JYhxoRf"
+//   )
+// );
+// let provider = new ethers.providers.JsonRpcProvider(
+//   "https://polygon-mumbai.g.alchemy.com/v2/EAAlM0-rm4pHavxVcH0ZV9Sm0JYhxoRf"
+// );
+
+// let provider = new ethers.providers.JsonRpcProvider(
+//   "https://eth-goerli.g.alchemy.com/v2/BAexJjh839qZdzF1_CxPlqcd3WRQexU9"
+// );
+
+let provider = new ethers.providers.JsonRpcProvider(
+  "https://data-seed-prebsc-1-s3.binance.org:8545"
+);
 
 const main = async () => {
-    const [sender, addr1, addr2] = await ethers.getSigners();
-    let accounts = [];
+  let votingContract = new ethers.Contract(
+    votingContractAddress,
+    VotingContract.abi,
+    provider
+  );
+  let owner = new ethers.Wallet(key.account.privateKey, provider);
 
-    let votingContract = new ethers.Contract(
-        votingContractAddress,
-        VotingContract.abi,
-        provider
-    );
+  for (let i = 0; i < 150; i++) {
+    const gasPrice = await owner.getGasPrice();
+    let overrides = {
+      gasPrice: gasPrice,
+    };
+    await votingContract
+      .connect(owner)
+      .giveRightToVote(0, Account.infor[i].address, overrides);
+  }
 
-    // let votingContract = new web3.eth.Contract(
-    //     VotingContract.abi,
-    //     votingContractAddress
-    // );
-
-    for (let i = 0; i < 50; i++) {
-        let accountObject = web3.eth.accounts.create();
-        accounts.push(accountObject);
-    }
-
-    for (let i = 0; i < 50; i++) {
-        await web3.eth.sendTransaction({
-            from: sender.address,
-            to: accounts[i].address,
-            value: web3.utils.toWei("0.01", "ether"),
-            gasLimit: 21000,
-            gasPrice: 20000000000,
-        });
-    }
-    let balance = await web3.eth.getBalance(accounts[0].address);
-
-    for (let i = 0; i < 50; i++) {
-        await votingContract
-            .connect(sender)
-            .giveRightToVote(0, accounts[i].address);
-    }
-
-    for (let i = 0; i < 50; i++) {
-        let wallet = new ethers.Wallet(accounts[i].privateKey, provider);
-        await votingContract.connect(wallet).vote(0, 0);
-        let balance2 = await web3.eth.getBalance(wallet.address);
-        console.log(balance - balance2);
-    }
+  for (let i = 0; i < 150; i++) {
+    let wallet = new ethers.Wallet(Account.infor[i].privateKey, provider);
+    const gasPrice = await wallet.getGasPrice();
+    let overrides = {
+      gasPrice: gasPrice,
+    };
+    await votingContract.connect(wallet).vote(0, 0, overrides);
+  }
 };
 
+console.time();
 main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
+  console.error(error);
+  process.exitCode = 1;
 });
+console.timeEnd();
