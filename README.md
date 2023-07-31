@@ -1,4 +1,4 @@
-# Simple NFT Game project
+# EVB project
 
 Blockchain e-voting system, smart contract repo
 
