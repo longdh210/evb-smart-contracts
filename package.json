@@ -19,12 +19,18 @@
   "dependencies": {
     "@eth-optimism/contracts": "^0.5.40",
     "@eth-optimism/sdk": "^2.0.2",
-    "@nomiclabs/hardhat-ethers": "^2.2.1",
-    "@nomiclabs/hardhat-etherscan": "^3.1.2",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
+    "@nomiclabs/hardhat-waffle": "^2.0.6",
     "@openzeppelin/contracts": "^4.8.0",
+    "@typechain/hardhat": "^9.0.0",
+    "dotenv": "^16.3.1",
     "ethers": "^5.7.2",
+    "hardhat-deploy": "^0.11.37",
+    "hardhat-gas-reporter": "^1.0.9",
     "keccak256": "^1.0.6",
     "merkletreejs": "^0.3.8",
+    "solidity-coverage": "^0.8.4",
     "web3": "^1.8.0"
   }
 }

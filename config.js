@@ -1,4 +1,5 @@
-const deployBallot = "0x7dc657664889E95C5a514551C6ef34F2a08fb766"
-    const userOperation = "0x642D08E5A20d5A09D6A3395cF999b6b710a3DdF6"
-    const smartAccountFactory = "0x727d02cec46057c1B11Ab0599f57a6599Ce97448"
-      module.exports = {deployBallot, userOperation, smartAccountFactory}
+export const governanceTokenAddress = "0xab16A69A5a8c12C732e0DEFF4BE56A70bb64c926"
+    export const timeLockAddress = "0x1f10F3Ba7ACB61b2F50B9d6DdCf91a6f787C0E82"
+    export const governorContractAddress = "0x457cCf29090fe5A24c19c1bc95F492168C0EaFdb"
+    export const investAddress = "0xB82008565FdC7e44609fA118A4a681E92581e680"
+      module.exports = {governanceTokenAddress, timeLockAddress, governorContractAddress, investAddress}
